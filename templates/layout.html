@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>My Books</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    </head>
+    <body>
+        {% if session['logged_in'] %}
+        <p class="navbar-text navbar-right"><a href="{{ url_for('logout')}}" class="navbar-link">Logout</a></p>
+        {% else %}
+        <p class="navbar-text navbar-right"><a href="{{ url_for('register')}}" class="navbar-link">Register </a></p>
+        {% endif %}
+        <div class="container">
+        <h1>{% block heading %}{% endblock %}</h1>
+
+        {% block body %}
+        {% endblock %}
+        </div>
+    </body>
+</html>

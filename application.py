@@ -99,6 +99,20 @@ def display(isbn):
     book = db.execute("SELECT * FROM books WHERE isbn = :isbn", {'isbn': isbn}).fetchone()
     return render_template("view_book.html", book=book, data=data)
 
+@app.route('/review/<isbn>', methods=['GET', 'POST'])
+def review(isbn):
+    book = db.execute("SELECT * FROM books WHERE isbn = :isbn", {'isbn': isbn}).fetchone()    # the user must be logged in
+    # take the username from the session or redirect to login
+    #rating = request.form['rating']
+    # take the values from the form
+    # If the user hasn't already made a review, update the database table reviews
+    # table columns will need to hold the 
+    # review_id (pk)
+    # user_id (FK)
+    # book_id (FK)
+    # rating (1-5)(numeric(1,0))
+    # review (text)
+    return render_template('review.html', book=book)
 
 if __name__ == '__main__':
     app.debug=True

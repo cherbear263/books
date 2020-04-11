@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block heading %}
+    {{book.title}}
+{% endblock %}
+
+{% block body %}
+
+    <p><strong>Title:</strong> {{book.title}}</p>
+    <p><strong>Author:</strong> {{book.author}}</p>
+    <p><strong>Year of Publication:</strong> {{book.year}}</p>
+    <p><strong>ISBN:</strong> {{book.isbn}}</p>
+    <p><strong>Average Rating on Goodreads:</strong> {{data['books'][0]['average_rating']}}</p>
+    <p><strong>Number of ratings on Goodreads:</strong> {{data['books'][0]['ratings_count']}}</p>
+
+{% endblock %}

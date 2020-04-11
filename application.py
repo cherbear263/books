@@ -1,4 +1,5 @@
 import os
+import requests
 from flask import Flask, session, render_template, request, url_for, redirect, flash
 from flask_session import Session
 from sqlalchemy import create_engine
@@ -9,6 +10,10 @@ app = Flask(__name__)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
+
+
+res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "T9NKrplU03zECQlrMhIFg", "isbns": "9781632168146"})
+print(res.json())
 
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
@@ -87,6 +92,12 @@ def search():
 
     return render_template('search.html')
 
+@app.route('/search/<isbn>', methods=['GET','POST'])
+def display(isbn):
+    res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "T9NKrplU03zECQlrMhIFg", "isbns": isbn})
+    data = res.json()
+    book = db.execute("SELECT * FROM books WHERE isbn = :isbn", {'isbn': isbn}).fetchone()
+    return render_template("view_book.html", book=book, data=data)
 
 
 if __name__ == '__main__':

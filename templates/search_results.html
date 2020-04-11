@@ -21,7 +21,8 @@
     <ul>
         {% if books %}
             {% for book in books %}
-            <li><a href="#">{{book.title}} by {{ book.author }}</a></li>
+            {% set isbn = book.isbn %}
+            <li><a href="{{url_for('display', isbn=isbn)}}">{{book.title}} by {{ book.author }}</a></li>
             {% endfor %}
         {% else %}
         <p>Your search returned no results</p>

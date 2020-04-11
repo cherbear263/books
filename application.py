@@ -71,6 +71,23 @@ def register():
     return render_template('register.html')
 
 
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    if request.method=="POST":
+        term = '%' + request.form.get("search_term") + '%'
+        term = term.upper()
+        books = db.execute("SELECT * FROM books WHERE (upper(title) like :term) OR (upper(author) like :term)", {"term": term }).fetchall()
+        for book in books:
+            print(f"found: {book.title}")
+        if books is None:
+            print(f"Search returned no books")
+            flash("sorry, no results. Please try another search term.")
+            return redirect(url_for('search'))
+        return render_template('search_results.html', books=books)
+
+    return render_template('search.html')
+
+
 
 if __name__ == '__main__':
     app.debug=True

@@ -81,7 +81,7 @@ def search():
     if request.method=="POST":
         term = '%' + request.form.get("search_term") + '%'
         term = term.upper()
-        books = db.execute("SELECT * FROM books WHERE (upper(title) like :term) OR (upper(author) like :term)", {"term": term }).fetchall()
+        books = db.execute("SELECT * FROM books WHERE (upper(title) like :term) OR (upper(author) like :term) OR (isbn like :term)", {"term": term }).fetchall()
         for book in books:
             print(f"found: {book.title}")
         if books is None:

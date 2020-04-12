@@ -93,6 +93,7 @@ def search():
 
 @app.route('/search/<isbn>', methods=['GET','POST'])
 def display(isbn):
+    # connect to goodreads API
     res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "T9NKrplU03zECQlrMhIFg", "isbns": isbn})
     data = res.json()
     book = db.execute("SELECT * FROM books WHERE isbn = :isbn", {'isbn': isbn}).fetchone()
@@ -120,6 +121,8 @@ def review(isbn):
         if review:
             if rating:
                 if db.execute("SELECT * FROM reviews WHERE (user_id = :user_id) AND (book_id = :book_id)" , {"user_id":user_id, "book_id":book_id}).rowcount == 0:
+                    
+                    # add review to reviews table
                     db.execute("INSERT INTO reviews (user_id, book_id, rating, review) VALUES (:user_id, :book_id, :rating, :review)",
                                 {"user_id": user_id, "book_id": book_id, "rating": rating, "review": review})
                     db.commit()
@@ -132,15 +135,6 @@ def review(isbn):
                 flash("You must submit a rating")
         else:
             flash("you must submit a review")
-
-        # If the user hasn't already made a review, update the database table reviews
-        #if db.execute("SELECT * FROM reviews WHERE (user_id=:user_id) AND (book_id = :book_id)", {user_id:user_id, book_id:book_id}).rowcount()!=0:
-        #    flash("You may only write one review per book.")
-        #else:
-        #db.execute("INSERT INTO reviews (user_id, book_id, rating, review) VALUES (:user_id, :book_id, :rating, :review)", {user_id:user_id, book_id:book_id, rating:rating, review:review })
-        #print("successfully added review")
-        #flash("thanks for your review")
-        #return redirect(url_for('display', isbn = isbn))
 
     return render_template('review.html', book=book, isbn=isbn)
 
@@ -163,7 +157,6 @@ def book_api(isbn):
         "review_count": data['books'][0]['ratings_count'],
         "average_score": data['books'][0]['average_rating']
     })
-
 
 if __name__ == '__main__':
     app.debug=True

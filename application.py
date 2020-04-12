@@ -1,6 +1,6 @@
 import os
 import requests
-from flask import Flask, session, render_template, request, url_for, redirect, flash
+from flask import Flask, session, render_template, request, url_for, redirect, flash, jsonify
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -25,12 +25,8 @@ def index():
     if not session.get('logged_in'):
         return render_template('login.html')
     else:
-        if session.get("notes") is None:
-            session["notes"] = []
-        if request.method=="POST":
-            note = request.form.get("note")
-            session["notes"].append(note)
-        return render_template("index.html", notes=session["notes"])
+
+        return render_template("search.html")
 
 @app.route('/login', methods=["GET", "POST"])
 def login():
@@ -44,7 +40,9 @@ def login():
         return redirect(url_for('index'))
     else:
         session['logged_in'] = True
-
+        user = db.execute("SELECT * FROM users WHERE username = :username", {"username": username}).fetchone()
+        user_id = user.id
+        session['user_id'] = user_id
     return index()
 
 @app.route('/logout')
@@ -78,6 +76,7 @@ def register():
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
+
     if request.method=="POST":
         term = '%' + request.form.get("search_term") + '%'
         term = term.upper()
@@ -97,22 +96,74 @@ def display(isbn):
     res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "T9NKrplU03zECQlrMhIFg", "isbns": isbn})
     data = res.json()
     book = db.execute("SELECT * FROM books WHERE isbn = :isbn", {'isbn': isbn}).fetchone()
-    return render_template("view_book.html", book=book, data=data)
+    book_id = book.id
+    reviews = db.execute("SELECT * FROM reviews WHERE book_id = :book_id", {'book_id': book_id}).fetchall()
+    return render_template("view_book.html", book=book, data=data, reviews=reviews)
 
 @app.route('/review/<isbn>', methods=['GET', 'POST'])
 def review(isbn):
     book = db.execute("SELECT * FROM books WHERE isbn = :isbn", {'isbn': isbn}).fetchone()    # the user must be logged in
+    book_id = book.id
+
     # take the username from the session or redirect to login
-    #rating = request.form['rating']
-    # take the values from the form
-    # If the user hasn't already made a review, update the database table reviews
-    # table columns will need to hold the 
-    # review_id (pk)
-    # user_id (FK)
-    # book_id (FK)
-    # rating (1-5)(numeric(1,0))
-    # review (text)
-    return render_template('review.html', book=book)
+    if not session.get('logged_in'):
+        return render_template('login.html')
+    user_id = session.get("user_id")
+    print(f"your user id is {user_id}")
+    if request.method=="POST":
+        # take the values from the form
+        rating = request.form.get('rating')
+        review = request.form.get('review')
+        print(f"User with user id of {user_id} has given the following review for {book_id}:\n \
+        the rating is {rating} and the review is {review}")
+        # rating and review can't be empty
+        if review:
+            if rating:
+                if db.execute("SELECT * FROM reviews WHERE (user_id = :user_id) AND (book_id = :book_id)" , {"user_id":user_id, "book_id":book_id}).rowcount == 0:
+                    db.execute("INSERT INTO reviews (user_id, book_id, rating, review) VALUES (:user_id, :book_id, :rating, :review)",
+                                {"user_id": user_id, "book_id": book_id, "rating": rating, "review": review})
+                    db.commit()
+                    flash("thanks for submitting your review!")
+                    return redirect(url_for('display', isbn=isbn))
+                else:
+                    flash("you can only submit one rating per book")
+
+            else: 
+                flash("You must submit a rating")
+        else:
+            flash("you must submit a review")
+
+        # If the user hasn't already made a review, update the database table reviews
+        #if db.execute("SELECT * FROM reviews WHERE (user_id=:user_id) AND (book_id = :book_id)", {user_id:user_id, book_id:book_id}).rowcount()!=0:
+        #    flash("You may only write one review per book.")
+        #else:
+        #db.execute("INSERT INTO reviews (user_id, book_id, rating, review) VALUES (:user_id, :book_id, :rating, :review)", {user_id:user_id, book_id:book_id, rating:rating, review:review })
+        #print("successfully added review")
+        #flash("thanks for your review")
+        #return redirect(url_for('display', isbn = isbn))
+
+    return render_template('review.html', book=book, isbn=isbn)
+
+@app.route("/api/books/<isbn>")
+def book_api(isbn):
+    ''' Return details about a single book '''
+    # Make sure book exists
+
+    book = db.execute("SELECT * FROM books WHERE isbn = :isbn", {'isbn': isbn}).fetchone()
+    if book is None:
+        return render_template('404.html')
+    
+    # get book details from goodreads
+    res = requests.get("https://www.goodreads.com/book/review_counts.json", params={"key": "T9NKrplU03zECQlrMhIFg", "isbns": isbn})
+    data = res.json()
+    return jsonify({
+        "title": book.title,
+        "author": book.title,
+        "year": book.year,
+        "review_count": data['books'][0]['ratings_count'],
+        "average_score": data['books'][0]['average_rating']
+    })
+
 
 if __name__ == '__main__':
     app.debug=True

@@ -1,3 +1,9 @@
 h1 {
     margin-top: 60px;
 }
+body {
+    background: #ededed;
+}
+a.btn-review {
+    margin-bottom: 20px;
+}
